@@ -8,11 +8,10 @@ SLIM_hillslope_ER_shrub      ! SLIM run name, path to PF-CLM next, followed by D
 1               !ppx
 1               !qqy
 0               !p_redis
-False           !source1
 0               !path 1752
 0               !cycle_f
 1               !particles per cell at start of simulation
-30000000        !np Total
+20000000        !np Total
 5.0             !dx
 0.2             !dy, dz follows
 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1

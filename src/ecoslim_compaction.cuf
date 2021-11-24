@@ -1,0 +1,136 @@
+module compact_array
+
+contains
+!1--------------------------------------------------------------------
+    attributes(global) subroutine prepare_holes(holes,d_indices,d_isValid,&
+        numElements)
+        !original:        1 0 1 1 0 0 1 0  d_isValid
+        !index(or ii):    1 2 3 4 5 6 7 8  ii
+        !prefix sum:      1 1 2 3 3 3 4 4  d_indices
+        !ii-d_indices:    0 1 1 1 2 3 3 4
+        !N-sum(index):    3 3 2 1 1 1 0 0  d_indices(numElements)-d_indices
+        !N-sum(index)+1:  4 4 3 2 2 2 1 1  ii2
+        !numElements:     8
+        !holes:           2 5 6 8
+        !holes index:     1 2 3 4
+
+        implicit none
+        integer,intent(in):: d_indices(:), d_isValid(:)
+        integer,intent(out):: holes(:)
+        !dimension is determined by np_active - d_indices(np_active)
+        !np_active is numElements
+        !holes is a temporary array that just needs dynamic allocation on cpu
+        integer:: ii   !global index in the array
+        integer,value:: numElements
+
+        ii = (blockIdx%x - 1) * blockDim%x + threadIdx%x
+        if(ii <= numElements .and. d_isValid(ii) == 0) then
+            holes(ii - d_indices(ii)) = ii
+        end if
+    end subroutine prepare_holes
+!4--------------------------------------------------------------------
+    attributes(global) subroutine select2exit(holes, &
+        d_in,d_out,hole_size)
+
+        implicit none
+        real(8),intent(in):: d_in(:,:)
+        real(8),intent(out):: d_out(:,:)
+        integer,intent(in):: holes(:)
+        integer:: ii   !global index in the array
+        integer,value:: hole_size
+
+        ii = (blockIdx%x - 1) * blockDim%x + threadIdx%x
+
+        if(ii <= hole_size) then
+            d_out(ii,:) = d_in(holes(ii),:)
+        end if
+
+    end subroutine select2exit
+!6--------------------------------------------------------------------
+    attributes(global) subroutine compaction_inplace(holes,d_indices, &
+    d_isValid,d_in,numElements)
+        !original:        1 0 1 1 0 0 1 0  d_isValid
+        !index(or ii):    1 2 3 4 5 6 7 8  ii
+        !prefix sum:      1 1 2 3 3 3 4 4  d_indices
+        !ii-d_indices:    0 1 1 1 2 3 3 4
+        !N-sum(index):    3 3 2 1 1 1 0 0  d_indices(numElements)-d_indices
+        !N-sum(index)+1:  4 4 3 2 2 2 1 1  ii2
+        !numElements:     8
+        !holes:           2 5 6 8
+        !holes index:     1 2 3 4
+
+        implicit none
+        real(8),intent(inout):: d_in(:,:)
+        integer,intent(in):: holes(:)
+        integer,intent(in):: d_indices(:),d_isValid(:)
+        !dimension is determined by np_active - d_indices(np_active)
+        !np_active is numElements
+        !holes is a temporary array that just needs dynamic allocation on cpu
+        integer:: ii, ii2, temp1, temp2   !global index in the array
+        integer,value:: numElements
+
+        ii = (blockIdx%x - 1) * blockDim%x + threadIdx%x
+
+        !if(ii <= numElements) &
+        !ii2 = d_indices(numElements) - d_indices(ii) + 1
+        !if(ii == 1) print *, 'rank',rank,'ii',ii,'ii2',ii2
+        !if(ii == numElements) print *, 'rank',rank,'ii',ii,'ii2',ii2
+
+        if(ii <= numElements .and. d_isValid(ii) > 0) then
+            ii2 = d_indices(numElements) - d_indices(ii) + 1
+            if (ii2 <= numElements-d_indices(numElements) .and. holes(ii2) <= d_indices(numElements)) then
+                temp1 = holes(ii2)
+                temp2 = ii
+                d_in(temp1,:) = d_in(temp2,:)
+            end if
+        end if
+
+    end subroutine compaction_inplace
+!9--------------------------------------------------------------------
+    attributes(global) subroutine Update_mass(P, &
+    mean_age,mean_comp,total_mass,np_active)
+
+        implicit none
+        real(8),intent(inout):: P(:,:)
+        real(8),intent(inout):: mean_age(:),total_mass(:),mean_comp(:)
+        integer,value:: np_active
+        real(8):: temp
+        integer:: ii
+
+        ii = (blockIdx%x - 1) * blockDim%x + threadIdx%x
+
+        if(ii <= np_active) then
+
+            ! increment mean age, composition and mass
+            temp = atomicAdd(mean_age,   P(ii,8)*P(ii,4)*P(ii,6))
+            temp = atomicAdd(mean_comp,  P(ii,8)*P(ii,7)*P(ii,6))
+            temp = atomicAdd(total_mass, P(ii,8)*P(ii,6))
+
+        end if
+
+    end subroutine Update_mass
+!9--------------------------------------------------------------------
+    attributes(global) subroutine prepare_neighbor(d_in,d_isValid,numElements)
+        !numElements is the current number of elements left in P, i.e., updated np_active
+
+        implicit none
+        real(8),intent(in):: d_in(:)
+        ! the 8th attribution of P array
+        integer,intent(out):: d_isValid(:)
+        integer,value:: numElements
+        ! numElements is the length to scan
+        ! neighbor is the rank of neighbor
+        integer:: ii   !global index in the array
+
+        ii = (blockIdx%x - 1) * blockDim%x + threadIdx%x
+
+        if(ii <= numElements) then
+            if(d_in(ii) == 0.) then
+                d_isValid(ii) = 0
+            else
+                d_isValid(ii) = 1
+            end if
+        end if
+    end subroutine prepare_neighbor
+
+end module compact_array
