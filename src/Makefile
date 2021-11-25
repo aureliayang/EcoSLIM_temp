@@ -53,4 +53,5 @@ clean:
 	Load* \
 	Log* \
 	P*bin \
-	E*bin
+	E*bin \
+	fort.12
