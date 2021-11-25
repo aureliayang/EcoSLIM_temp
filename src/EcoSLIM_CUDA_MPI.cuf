@@ -5,9 +5,11 @@
 ! flowpaths. It integrates seamlessly with **ParFlow-CLM**.
 !--------------------------------------------------------------------
 program EcoSLIM
+
 use mpi
 use cudafor
 use ran_mod
+use mrand
 use thrust
 use compact_array
 use create_subgrid
@@ -54,7 +56,7 @@ real*8,allocatable,pinned:: Vx(:,:,:)
 real*8,allocatable,pinned:: Vy(:,:,:)
 real*8,allocatable,pinned:: Vz(:,:,:)
 real*8,allocatable,pinned:: C(:,:,:,:)
-CHARACTER*20,allocatable:: conc_header(:)
+character*20,allocatable:: conc_header(:)
 real*8,allocatable:: Time_Next(:)
 real*8,allocatable,pinned:: dz(:)
 real*8,allocatable:: Zt(:)
@@ -70,34 +72,33 @@ real*8,allocatable,pinned:: Ind(:,:,:)
 integer Ploc(3)
 integer nind, itemp
 integer nx, nnx, ny, nny, nz, nnz, nztemp
-integer np_ic, np, np_active, np_active2, icwrite, jj, npnts, ncell, npout
+integer np_ic, np, np_active, icwrite, jj, npnts, ncell, npout
 integer n_constituents
 integer pid
 real(8) pfdt
 integer pft1, pft2, tout1, pfnt, n_cycle
-real*8  Time_first, ntemp
-integer kk
-integer pfkk, outkk
+real(8) Time_first, ntemp
+integer kk, pfkk, outkk
 integer ii
 integer iflux_p_res, i_added_particles
 integer i, j, k, l, ik, ji, m, ij, nzclm, nCLMsoil
 integer*4 ir
 
 !--------------------------------------------------------------------
-character*200 runname, filenum, filenumout, pname, fname, vtk_file, DEMname, Indname
-real*8 Z, maxz
-real*8 V_mult
+character(200) runname, filenum, filenumout, pname, fname, vtk_file, DEMname, Indname
+real(8) Z, maxz
+real(8) V_mult
 logical clmtrans, clmfile, source1
-real*8 dtfrac
-real*8 Xmin, Xmax, Ymin, Ymax, Zmin, Zmax
-real*8 dx, dy
-real*8 Vpx, Vpy, Vpz
-real*8 particledt, delta_time
-real*8 mean_age, mean_comp, mean_mass, total_mass
-real*8 denh2o, moldiff
-real*8,allocatable:: PET_balance_da(:,:), PET_balance(:,:)
-real*8 Total_time1, Total_time2, t1, t2, IO_time_read, IO_time_write, parallel_time
-real*8 sort_time, redis_time, source_time
+real(8) dtfrac
+real(8) Xmin, Xmax, Ymin, Ymax, Zmin, Zmax
+real(8) dx, dy
+real(8) Vpx, Vpy, Vpz
+real(8) particledt, delta_time
+real(8) mean_age, mean_comp, mean_mass, total_mass
+real(8) denh2o, moldiff
+real(8),allocatable:: PET_balance_da(:,:), PET_balance(:,:)
+real(8) Total_time1, Total_time2, t1, t2, IO_time_read, IO_time_write, parallel_time
+real(8) sort_time, redis_time, source_time
 integer ipwrite, ibinpntswrite
 integer etwrite
 
@@ -221,14 +222,18 @@ endif ! rank=0
 
 ! read domain number of cells and number of particles to be injected
 read(10,*) nx
+nx = nx
 read(10,*) ny
+ny = ny
 read(10,*) nz
+nz = nz
 read(10,*) nCLMsoil
 read(10,*) ppx
 read(10,*) qqy
 read(10,*) p_redis
 ! read(10,*) source1
 read(10,*) path
+path = path
 read(10,*) cycle_f
 read(10,*) np_ic
 
@@ -295,6 +300,7 @@ read(10,*) dy
 read(10,*) dz(1:nz)
 ! read in (constant for now) ParFlow dt
 read(10,*) pfdt
+pfdt = pfdt
 ! read in parflow start and stop times
 read(10,*) pft1
 read(10,*) pft2
@@ -334,8 +340,11 @@ read(10,*) clmtrans
 read(10,*) clmfile
 read(10,*) iflux_p_res
 read(10,*) denh2o
+denh2o = denh2o
 read(10,*) moldiff
+moldiff = moldiff
 read(10,*) dtfrac
+dtfrac = dtfrac
 
 if(rank == 0) then
     ! wite out log file
@@ -367,6 +376,7 @@ if(rank == 0) then
 endif
 
 read(10,*) nind
+nind = nind
 read(10,*) Indname
 if(rank == 0) then
     write(11,*)
@@ -450,6 +460,13 @@ Zmax = 0.0d0
 do k = 1, nz
     Zmax = Zmax + dz(k)
 end do
+
+!Xmin = Xmin_c
+!Ymin = Ymin_c
+!Zmin = Zmin_c
+!Xmax = Xmax_c
+!Ymax = Ymax_c
+!Zmax = Zmax_c
 
 write(loadf,'(a,i3.3,a)') 'Load_info.', rank, '.txt'
 write(restartf,'(a,i3.3,a)') 'Particle_restart.',rank,'.bin'
@@ -760,7 +777,7 @@ endif
 allocate(dz_de(nz))
 allocate(Vx_de(nnx,ny,nz),Vy_de(nx,nny,nz),Vz_de(nx,ny,nnz),Ind_de(nx,ny,nz))
 allocate(Saturation_de(nx,ny,nz),Porosity_de(nx,ny,nz),EvapTrans_de(nx,ny,nz))
-allocate(C_de(n_constituents,nx,ny,nz),d_indices(np),d_isValid(np))
+allocate(C_de(n_constituents,nx,ny,nz),d_indices(np),d_isValid(np),h(np))
 allocate(out_np_de(1),ET_np_de(1),nump_path_de(nx,ny,1))
 allocate(out_age_de(1),out_mass_de(1),out_comp_de(3))
 allocate(ET_age_de(1),ET_mass_de(1),ET_comp_de(3))
@@ -771,6 +788,8 @@ Porosity_de = Porosity
 
 allocate(P_de(np,17+nind*2))
 P_de(1:np_active,:) = P(1:np_active,:)
+
+call createRand_loop<<< ceiling(dble(np)/tPB),tPB >>> (np, rank, pfnt)
 !--------------------------------------------------------------------
 ! (3) For each timestep, loop over all particles to find and
 !     update their new locations
@@ -952,7 +971,7 @@ do kk = outkk, pfnt
 
     call MPI_ALLReduce(MPI_IN_PLACE, PET_balance_da(kk,:), 2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLReduce(MPI_IN_PLACE, PET_balance(kk,:),    2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-
+    print *, 'ok0'
 !--------------------------------------------------------------------
     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
     T1 = MPI_Wtime()
@@ -971,9 +990,10 @@ do kk = outkk, pfnt
     Vx_de   = Vx;        Vy_de   = Vy;        Vz_de   = Vz
     Saturation_de = Saturation;  EvapTrans_de  = EvapTrans
 
-    call particles_independent <<< ceiling(dble(np_active)/tPB),tPB >>> (&
-      kk,np_active,nx,ny,nz,nind,pfdt,moldiff,dx,dy,denh2o,dtfrac,&
-      xmin,ymin,zmin,xmax,ymax,zmax,path)
+    call particles_independent <<< ceiling(dble(np_active)/tPB),tPB >>> ( &
+    kk,np_active,nx,ny,nz,nind,path, &
+    pfdt,moldiff,dx,dy,denh2o,dtfrac, &
+    xmin,ymin,zmin,xmax,ymax,zmax)
 
     C              = C_de
     out_age_cpu    = out_age_de;    out_mass_cpu   = out_mass_de
@@ -1117,7 +1137,7 @@ end if
 vtk_file=trim(runname)//'_pnts'
 if(ibinpntswrite > 0)  then
   if(mod(kk,ibinpntswrite) == 0)  &
-    call vtk_write_points(P,np_active,np,kk,vtk_file, dx, dy,nx,ny, maxZ,dem)
+    call vtk_write_points(P,np_active,np,kk,vtk_file,dx,dy,nx,ny,maxZ,dem)
 end if
 
 call MPI_BARRIER(MPI_COMM_WORLD, ierr)

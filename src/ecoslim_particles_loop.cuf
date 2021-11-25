@@ -1,5 +1,7 @@
 module particles_loop
     use cudafor
+    use curand_device
+    use mrand, only: h
     real(8),allocatable,device::P_de(:,:),C_de(:,:,:,:)
     real(8),allocatable,device::Vx_de(:,:,:),Vy_de(:,:,:),Vz_de(:,:,:),dz_de(:),Ind_de(:,:,:)
     real(8),allocatable,device::Saturation_de(:,:,:),Porosity_de(:,:,:),EvapTrans_de(:,:,:)
@@ -15,10 +17,15 @@ module particles_loop
     integer,allocatable,pinned::out_np_cpu(:),ET_np_cpu(:),nump_path(:,:,:)
     real(8),allocatable,pinned::out_age_cpu(:),out_mass_cpu(:),out_comp_cpu(:)
     real(8),allocatable,pinned::ET_age_cpu(:),ET_mass_cpu(:),ET_comp_cpu(:)
+
+    !real(8),constant::xmin,ymin,zmin,xmax,ymax,zmax
+    !real(8),constant::pfdt,moldiff,dx,dy,denh2o,dtfrac
+    !integer,constant::path,kk,np_active,nx,ny,nz,nind
 contains
  attributes(global) subroutine particles_independent( &
-    kk,np_active,nx,ny,nz,nind,pfdt,moldiff,dx,dy,denh2o, &
-    dtfrac,xmin,ymin,zmin,xmax,ymax,zmax,path)
+     kk,np_active,nx,ny,nz,nind,path, &
+     pfdt,moldiff,dx,dy,denh2o,dtfrac, &
+     xmin,ymin,zmin,xmax,ymax,zmax)
 
  ! P,C,dz,EvapTrans,Vx,Vy,Vz,nump_path,Saturation,Porosity,&
  ! out_age,out_mass,out_comp,et_age,et_mass,et_comp,&
@@ -26,53 +33,25 @@ contains
 
   implicit none
 
-  ! integer,parameter::block_size = 256
-  ! real*8,intent(inout)::P(:,:),C(:,:,:,:)
-  ! real*8,intent(in)::dz(:),EvapTrans(:,:,:),Vx(:,:,:),Vy(:,:,:)
-  ! real*8,intent(in)::Vz(:,:,:),Saturation(:,:,:),Porosity(:,:,:),Ind(:,:,:)
-
   integer,value:: kk,np_active,nx,ny,nz,nind,path
   real(8),value:: pfdt,moldiff,dx,dy,denh2o,dtfrac
   real(8),value:: xmin,ymin,zmin,xmax,ymax,zmax
 
-  integer:: ii,k,Ploc(3),ir
+
+  integer:: ii,k,Ploc(3)
   real(8):: Z,Vpx,Vpy,Vpz,particledt,delta_time,et_flux, &
   water_vol,advdt(3),z1,z2,z3,temp,lock
+  type(curandStateXORWOW):: hh
 
-  !! global
-  !real*8,intent(inout)::out_age(:),out_mass(:),out_comp(:),&
-  !et_age(:),et_mass(:),et_comp(:)
-  !integer,intent(inout)::out_np(:),et_np(:),nump_path(:,:,:)
-
-  ! for random number, waiting for tests
-  ! change memory type or use the prebuild function
-  real(8) r(97),rm1,rm2
-  integer j
-  integer iff,ix1,ix2,ix3
-  iff = 0
+  ! change et_flux and water_vol to k and Z
 
   lock = 1.d0
 !=============================================================================
     ii = (blockIdx%x - 1) * blockDim%x + threadIdx%x
 
-    !if(ii==1) out_age = 0.d0
-    !if(ii==2) out_mass = 0.d0
-    !if(ii==3) out_comp = 0.d0
-    !if(ii==4) out_np = 0
-    !if(ii==5) et_age = 0.d0
-    !if(ii==6) et_mass = 0.d0
-    !if(ii==7) et_comp = 0.d0
-    !if(ii==8) et_np = 0
-    !if(ii==9) C = 0.d0
-    !if(path > 0 .and. mod(kk,path) == 0) then
-    !    if(ii==10) nump_path = 0
-    !endif
-
-    !call syncthreads()
-!=============================================================================
-    ir = -(932117 + ii + 100*kk)
-
     delta_time = 0.d0
+
+    hh = h(ii)
 
     if(P_de(ii,8) == 1. .and. ii <= np_active) then
 
@@ -176,11 +155,10 @@ contains
             ! compare total water removed from cell by ET with total water available in cell to arrive at a particle
             ! probability of being captured by roots
             ! water volume in cell
-            water_vol = dx*dy*dz_de(Ploc(3)+1)*(Porosity_de(Ploc(1)+1,Ploc(2)+1,Ploc(3)+1)  &
+            water_vol = dx*dy*dz_de(Ploc(3)+1)*(Porosity_de(Ploc(1)+1,Ploc(2)+1,Ploc(3)+1) &
             *Saturation_de(Ploc(1)+1,Ploc(2)+1,Ploc(3)+1))
 
-            ! Zr = ran1_gpu(ir,iff,ix1,ix2,ix3,j,r,rm1,rm2)
-            if (ran1_gpu(ir,iff,ix1,ix2,ix3,j,r,rm1,rm2) < ((et_flux*particledt)/water_vol)) then   ! check if particle is 'captured' by the roots
+            if (curand_uniform(hh) < ((et_flux*particledt)/water_vol)) then   ! check if particle is 'captured' by the roots
             ! this section made atomic since it could inovlve a data race
             ! that is, each thread can only update the ET arrays one at a time
 
@@ -231,9 +209,9 @@ contains
 
             ! Molecular Diffusion
             if (moldiff > 0.d0) then
-            z1 = 2.d0*SQRT(3.d0)*(ran1_gpu(ir,iff,ix1,ix2,ix3,j,r,rm1,rm2)-0.5d0)
-            z2 = 2.d0*SQRT(3.d0)*(ran1_gpu(ir,iff,ix1,ix2,ix3,j,r,rm1,rm2)-0.5d0)
-            z3 = 2.d0*SQRT(3.d0)*(ran1_gpu(ir,iff,ix1,ix2,ix3,j,r,rm1,rm2)-0.5d0)
+            z1 = 2.d0*SQRT(3.d0)*(curand_uniform(hh)-0.5d0)
+            z2 = 2.d0*SQRT(3.d0)*(curand_uniform(hh)-0.5d0)
+            z3 = 2.d0*SQRT(3.d0)*(curand_uniform(hh)-0.5d0)
 
             P_de(ii,1) = P_de(ii,1) + z1 * SQRT(moldiff*2.d0*particledt)
             P_de(ii,2) = P_de(ii,2) + z2 * SQRT(moldiff*2.d0*particledt)
@@ -256,7 +234,6 @@ contains
             if (nind > 0) then
               k = idnint(Ind_de(Ploc(1)+1,Ploc(2)+1,Ploc(3)+1))
               if(k > 0 .and. k <= nind) then
-
                 P_de(ii,12+k) = P_de(ii,12+k) + particledt
 
                 P_de(ii,12+nind+k) = P_de(ii,12+nind+k) + temp
@@ -313,49 +290,6 @@ contains
 
     end if
 
+    h(ii) = hh
  end subroutine particles_independent
-!=============================================================================
-      attributes(device) function ran1_gpu(idum,iff,ix1,ix2,ix3,j,r,rm1,rm2)
-        implicit none  !note after use statement
-        real*8 ran1_gpu
-        integer, intent(inout), optional :: idum
-        real*8 r(97),rm1,rm2
-        integer, parameter :: m1=259200,ia1=7141,ic1=54773
-        integer, parameter :: m2=134456,ia2=8121,ic2=28411
-        integer, parameter :: m3=243000,ia3=4561,ic3=51349
-        integer j
-        integer iff,ix1,ix2,ix3
-        !data iff /0/
-        !iff = 0
-!        save iff,ix1,ix2,ix3,j,r,rm1,rm2
-        if(present(idum))then
-          if (idum<0.or.iff.eq.0)then
-            rm1=1.0/m1
-            rm2=1.0/m2
-            iff=1
-            ix1=mod(ic1-idum,m1)
-            ix1=mod(ia1*ix1+ic1,m1)
-            ix2=mod(ix1,m2)
-            ix1=mod(ia1*ix1+ic1,m1)
-            ix3=mod(ix1,m3)
-            do j=1,97
-                ix1=mod(ia1*ix1+ic1,m1)
-                ix2=mod(ia2*ix2+ic2,m2)
-                r(j)=(real(ix1)+real(ix2)*rm2)*rm1
-            enddo
-            idum=1
-          endif
-        endif
-        ix1=mod(ia1*ix1+ic1,m1)
-        ix2=mod(ia2*ix2+ic2,m2)
-        ix3=mod(ia3*ix3+ic3,m3)
-        j=1+(97*ix3)/m3
-        !if(j>97.or.j<1)then
-        !    write(*,*)' error in ran1_gpu j=',j
-        !    stop
-        !endif
-        ran1_gpu=r(j)
-        r(j)=(real(ix1)+real(ix2)*rm2)*rm1
-        return
-     end function ran1_gpu
 end module particles_loop

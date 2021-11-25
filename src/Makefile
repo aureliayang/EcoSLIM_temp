@@ -1,5 +1,6 @@
 # Last Change:  2021-07-20 22:29:28
 CUF=ecoslim_thrustscan.o \
+	ecoslim_cuRAND_de.o \
     ecoslim_device_utility.o \
     ecoslim_create_subgrid.o \
     ecoslim_compaction.o \
@@ -18,6 +19,8 @@ test: ecoslim_cthrustscan.o ${CUF}
 
 ecoslim_cthrustscan.o: ecoslim_cthrustscan.cu
 	nvcc -c $^ -o $@ -std=c++14
+ecoslim_cuRAND_de.o: ecoslim_cuRAND_de.cuf
+	mpif90 -c $^ -o $@
 ecoslim_thrustscan.o: ecoslim_thrustscan.cuf
 	mpif90 -c $^ -o $@
 ecoslim_create_subgrid.o: ecoslim_create_subgrid.f90
@@ -26,7 +29,7 @@ ecoslim_device_utility.o: ecoslim_device_utility.cuf
 	mpif90 -c $^ -o $@
 ecoslim_compaction.o: ecoslim_compaction.cuf
 	mpif90 -c $< -o $@
-ecoslim_particles_loop.o: ecoslim_particles_loop.cuf
+ecoslim_particles_loop.o: ecoslim_particles_loop.cuf ecoslim_cuRAND_de.o
 	mpif90 -c $< -o $@
 ran1.mod.o: ran1.mod.f90
 	mpif90 -c $^ -o $@
