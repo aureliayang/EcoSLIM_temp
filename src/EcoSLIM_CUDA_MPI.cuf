@@ -751,7 +751,7 @@ do kk = outkk, pfnt
     if (mod((kk-1),(pft2-pft1+1)) == 0)  pfkk = pft1 - 1
 
     if(cycle_f > 0) then
-        if(mod(kk-1,cycle_f) == 0) then
+        if(mod(kk-1,cycle_f) == 0 .and. kk /= 1) then
             subid(1) = subid(1) + 1
             if(subid(1) + 1 > t_rank) subid(1) = mod(subid(1),t_rank) ! plus twice
             write(30,'(a,i5,a,4(i10,1x))') 'rank:',rank, &
@@ -947,10 +947,10 @@ do kk = outkk, pfnt
 !--------------------------------------------------------------------
     if(rank == 0) then
         write(12,*) np_active_log, T2-T1, redis_time
-        if(path_c > 0 .and. mod(kk,path_c) == 0) then
-            write(12,'(5(20i10,/))') ((nump_path(i,j,1),i=1,nx_c),j=1,ny_c)
-        endif
-        flush(12)
+        ! if(path_c > 0 .and. mod(kk,path_c) == 0) then
+        !     write(12,'(5(20i10,/))') ((nump_path(i,j,1),i=1,nx_c),j=1,ny_c)
+        ! endif
+        ! flush(12)
 
         if (ET_mass_cpu(1) > 0) then
             ET_age_cpu(1)  = ET_age_cpu(1)/ET_mass_cpu(1)
