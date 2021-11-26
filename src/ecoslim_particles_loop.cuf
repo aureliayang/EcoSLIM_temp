@@ -30,8 +30,6 @@ contains
   implicit none
 
   integer,value:: kk,np_active
-  !real(8),value:: pfdt,moldiff,dx,dy,denh2o,dtfrac
-  !real(8),value:: xmin,ymin,zmin,xmax,ymax,zmax
 
   integer:: ii,k,Ploc(3),ii_l
   real(8):: Z,Vpx,Vpy,Vpz,particledt,delta_time, &
@@ -80,8 +78,7 @@ contains
             (P_de(ii,1) >= Xmax).or.(P_de(ii,2) >= Ymax).or.(P_de(ii,3) >= (Zmax-dz_de(nz)))) then
 
             if ((P_de(ii,3) >= Zmax-(dz_de(nz)*0.5d0)).and. &
-            (gl(ii_l,1) == 1.).and. &
-             (Vz_T(Ploc(1)+1,Ploc(2)+1,Ploc(3)+1) > 0.d0)) then
+            (gl(ii_l,1) == 1.).and.(Vz_T(Ploc(1)+1,Ploc(2)+1,Ploc(3)+1) > 0.d0)) then
 
             temp = atomicAdd(Out_age_de(1), P_de(ii,4)*P_de(ii,6))
             temp = atomicAdd(Out_mass_de(1), P_de(ii,6))

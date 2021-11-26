@@ -69,14 +69,13 @@ real(8),allocatable:: Pnts(:,:), DEM(:,:) ! DEM and grid points for concentratio
 real(8),allocatable,pinned:: Ind(:,:,:)
 
 !--------------------------------------------------------------------
-integer Ploc(3)
-integer nind_c, itemp
+integer Ploc(3), nind_c, itemp
 integer nx_c, nnx, ny_c, nny, nz_c, nnz, nztemp
-integer np_ic, np, np_active, icwrite, jj, npnts, ncell, npout
+integer np_ic, np, np_active, jj, npnts, ncell, npout
 integer n_constituents, pid
 real(8) pfdt_c
 integer pft1, pft2, tout1, pfnt, n_cycle
-real(8) Time_first, ntemp
+real(8) Time_first
 integer kk, pfkk, outkk
 integer ii, iflux_p_res, i_added_particles
 integer i, j, k, l, ik, ji, m, ij, nzclm, nCLMsoil, ir
@@ -85,16 +84,15 @@ integer i, j, k, l, ik, ji, m, ij, nzclm, nCLMsoil, ir
 character(200) runname, filenum, filenumout, pname, fname, vtk_file, DEMname, Indname
 real(8) Z, maxz, V_mult
 logical clmtrans, clmfile, source1
-real(8) dtfrac_c
 real(8) Xmin_c, Xmax_c, Ymin_c, Ymax_c, Zmin_c, Zmax_c
 real(8) dx_c, dy_c, Vpx, Vpy, Vpz
-real(8) particledt, delta_time
+real(8) delta_time, dtfrac_c
 real(8) mean_age, mean_comp, mean_mass, total_mass
 real(8) denh2o_c, moldiff_c
 real(8),allocatable:: PET_balance_da(:,:), PET_balance(:,:)
-real(8) Total_time1, Total_time2, t1, t2, IO_time_read, IO_time_write, parallel_time
-real(8) sort_time, redis_time, source_time
-integer ipwrite, ibinpntswrite, etwrite
+real(8) Total_time1, Total_time2, t1, t2, IO_time_read, IO_time_write
+real(8) sort_time, redis_time, source_time, parallel_time
+integer icwrite, ipwrite, ibinpntswrite, etwrite
 
 !--------------------------------------------------------------------
 integer,parameter:: tPB = 256
@@ -182,7 +180,6 @@ Total_time1 = MPI_Wtime()
 ! (2) Read inputs, set up domain, write the log file, and
 ! initialize particles
 !--------------------------------------------------------------------
-
 call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 T1 = MPI_Wtime()
 
@@ -200,7 +197,7 @@ read(10,*) DEMname
 
 if(rank == 0) then
     ! open/create/write the output log.txt file. If doesn't exist, it's created.
-    open(11,file=trim(runname)//'_log.txt')
+    open(11,file = trim(runname)//'_log.txt')
     write(11,*) '### EcoSLIM Log File'
     write(11,*)
     write(11,*) 'run name:',trim(runname)
@@ -241,7 +238,6 @@ if(rank == 0) then
         write(11,*) 'warning NP_IC greater than IC'
         np = np_ic
     end if
-
     ! write nx, ny, nz, and np in the log file
     write(11,*) 'Grid information'
     write(11,*) 'nx:',nx_c
@@ -259,9 +255,7 @@ endif ! rank=0
 nnx = nx_c + 1
 nny = ny_c + 1
 nnz = nz_c + 1
-
 nzclm = 13 + nCLMsoil
-
 n_constituents = 9
 ! allocate arrays
 allocate(DEM(nx_c,ny_c),nump(ppx*qqy),grid(ppx*qqy,4))
@@ -313,9 +307,6 @@ allocate(PET_balance(pfnt,2))
 allocate(PET_balance_da(pfnt,2))
 PET_balance = 0.0d0
 PET_balance_da = 0.0d0
-
-! clear out output particles
-npout = 0
 
 ! IO control, each value is a timestep interval, e.g. 1= every timestep, 2=every other, 0 = no writing
 read(10,*) ipwrite        ! controls an ASCII, .3D particle file not recommended due to poor performance
@@ -429,9 +420,9 @@ open(10,file='sub_info.txt')
     do i = 1, t_rank
         if(rank == i-1) then
             read(10,*) nsub
-            if(nsub>0) then
+            if(nsub > 0) then
                 allocate(subid(nsub))
-                read(10,*) (subid(j),j=1,nsub)
+                read(10,*) (subid(j),j = 1,nsub)
             else
                 read(10,*)
             endif
@@ -466,7 +457,6 @@ Zmax = Zmax_c
 
 write(restartf,'(a,i3.3,a)') 'Particle_restart.',rank,'.bin'
 write(exitedf,'(a,i3.3,a)') 'Exited_particles.',rank,'.bin'
-write(logf,'(a,i3.3,a)') 'Log_particles.',rank,'.txt'
 
 open(30,file='Load_info.'//trim(adjustl(ranknum))//'.txt')
 
@@ -478,6 +468,7 @@ write(30,'("Zmin:",e12.5," Zmax:",e12.5)') Zmin_c, Zmax_c
 call gridinfo(nx_c,ny_c)
 ! add grid info to log file
 write(30,'(a,i5,a,4(i10,1x))') 'rank:',rank,', Gridinfo (ix1,iy1,nnx1,nny1):',grid(rank+1,1:4)
+flush(30)
 
 ! Set up grid locations for file output
 npnts=nnx*nny*nnz
@@ -761,10 +752,11 @@ do kk = outkk, pfnt
 
     if(cycle_f > 0) then
         if(mod(kk-1,cycle_f) == 0) then
-        subid(1) = subid(1) + 1
-        if(subid(1)+1 > t_rank) subid(1) = mod(subid(1),t_rank) ! plus twice
-        write(30,'(a,i5,a,4(i10,1x))') 'rank:',rank, &
-        ', Gridinfo (ix1,iy1,nnx1,nny1):',grid(subid(1)+1,1:4)
+            subid(1) = subid(1) + 1
+            if(subid(1) + 1 > t_rank) subid(1) = mod(subid(1),t_rank) ! plus twice
+            write(30,'(a,i5,a,4(i10,1x))') 'rank:',rank, &
+            ', Gridinfo (ix1,iy1,nnx1,nny1):',grid(subid(1)+1,1:4)
+            flush(30)
         endif
     endif
 
@@ -944,6 +936,7 @@ do kk = outkk, pfnt
         !nump_path = nump_path/1000
         call grid_adjust(nx_c,ny_c,1,nump_path)
         write(30,'(a,i5,a,4(i10,1x))') 'rank:',rank,', Gridinfo (ix1,iy1,nnx1,nny1):',grid(rank+1,1:4)
+        flush(30)
     endif
 
     call MPI_Reduce(np_active, np_active_log, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
@@ -1072,8 +1065,8 @@ do kk = outkk, pfnt
     ! a lot of real(8) to integer conversion which is time consuming.
 
     call thrustscan(d_isValid,np_active,d_indices)
-    ntemp = d_indices(np_active)
-    npout = np_active - ntemp
+    itemp = d_indices(np_active)
+    npout = np_active - itemp
 
     if(npout > 0) then
         allocate(holes(npout),P_exit(npout,17+2*nind_c))
@@ -1085,7 +1078,7 @@ do kk = outkk, pfnt
         call compaction_inplace<<<ceiling(dble(np_active)/tPB),tPB>>>( &
             holes,d_indices,d_isValid,P_de,np_active)
         ! update the slots after np_active
-        np_active = ntemp
+        np_active = itemp
         ! add output if necessary
         deallocate(holes,P_exit)
     end if
@@ -1108,9 +1101,9 @@ do kk = outkk, pfnt
     end if
 
     write(31,'(3(i10),7(1x,e12.5,1x),3(i8),i12)') kk,pfkk,outkk,Time_Next(kk),mean_age,mean_comp, &
-                                                  mean_mass,total_mass,PET_balance(kk,1), &
-                                                  PET_balance(kk,2),i_added_particles,ET_np_cpu(1), &
-                                                  Out_np_cpu(1),np_active
+    mean_mass,total_mass,PET_balance(kk,1),PET_balance(kk,2),i_added_particles,ET_np_cpu(1), &
+    Out_np_cpu(1),np_active
+    flush(31)
 !------------------------------------------------------------------
     call MPI_BARRIER(MPI_COMM_WORLD, ierr)
     T1 = MPI_Wtime()
@@ -1124,7 +1117,7 @@ do kk = outkk, pfnt
         np_ps = (sum(nump)+t_rank-mod(sum(nump),t_rank))/t_rank
         np_ln = rank*np_ps; np_rn = (rank+1)*np_ps
 
-        if(np_lo<np_ln .and. rank>0) then
+        if(np_lo < np_ln .and. rank > 0) then
             !P(1:np_ln-np_lo,:), Send to rank-1
             !  ___|___|___|___......
             !    old     new
@@ -1136,9 +1129,10 @@ do kk = outkk, pfnt
 
             write(30,'(i10,1x,a,i3,1x,a,i3,1x)') np_ln-np_lo, &
             'particles sent from rank',rank,'to rank',rank-1
+            flush(30)
         endif
 
-        if(np_ro<np_rn .and. rank<t_rank-1) then
+        if(np_ro < np_rn .and. rank < t_rank-1) then
             !P(np_active+1:np_active+np_rn-np_ro,:), Receive from rank+1
             !  ......___|___|___|___
             !          old     new
@@ -1150,9 +1144,10 @@ do kk = outkk, pfnt
 
             write(30,'(i10,1x,a,i3,1x,a,i3,1x)') np_rn-np_ro, &
             'particles received on rank',rank,'from rank',rank+1
+            flush(30)
         endif
 
-        if(np_ro>np_rn .and. rank<t_rank-1) then
+        if(np_ro > np_rn .and. rank < t_rank-1) then
             !P(np_active-(np_ro-np_rn)+1:np_active,:), Send to rank+1
             !  ......___|___|___|___
             !          new     old
@@ -1164,9 +1159,10 @@ do kk = outkk, pfnt
 
             write(30,'(i10,1x,a,i3,1x,a,i3,1x,a)') np_ro-np_rn, &
             'particles sent from rank',rank,'to rank',rank+1
+            flush(30)
         endif
 
-        if(np_lo>np_ln .and. rank>0) then
+        if(np_lo > np_ln .and. rank > 0) then
             !P(1:np_lo-np_ln,:), Receive from rank-1
             !  ___|___|___|___......
             !    new     old
@@ -1179,6 +1175,7 @@ do kk = outkk, pfnt
 
             write(30,'(i10,1x,a,i3,1x,a,i3,1x)') np_lo-np_ln, &
             'particles received on rank',rank,'from rank',rank-1
+            flush(30)
         endif
 
         P_de = P
