@@ -249,15 +249,15 @@ contains
             Z = 0.d0
             do k = 1, nz
                 Z = Z + dz_de(k)
-                if (Z >= P_de(ii,15+2*nind)) then
+                if (Z >= P_de(ii,16+2*nind)) then
                     Ploc(3) = k - 1
                     exit
                 end if
             end do
 
             if(Ploc(3)+1 == nz) then
-                Ploc(1) = floor(P_de(ii,13+2*nind) / dx)
-                Ploc(2) = floor(P_de(ii,14+2*nind) / dy)
+                Ploc(1) = floor(P_de(ii,14+2*nind) / dx)
+                Ploc(2) = floor(P_de(ii,15+2*nind) / dy)
                 temp = atomicAdd(nump_path_de(Ploc(1)+1,Ploc(2)+1,1),idnint(P_de(ii,8)))
             endif
 
