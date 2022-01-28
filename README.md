@@ -43,7 +43,7 @@
 * **nind,** Number of subsurface indicator
 * **Indname,** pfb file of indicator
 ## Build
-**An example of environment on Della GPU cluster at Princeton University:**    
+**An example of environment on Della GPU cluster at Princeton University:**  
     <table>  
       <tr>
         <td>Compiler</td>
