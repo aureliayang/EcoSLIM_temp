@@ -42,5 +42,8 @@
 * **dtfrac,** Numerical stability information
 * **nind,** Number of subsurface indicator
 * **Indname,** pfb file of indicator
+## Build
+* Please use the Makefile in the src folder to build
+* An example on della-gpu cluster at Princeton University
 
 
