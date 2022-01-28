@@ -44,7 +44,20 @@
 * **Indname,** pfb file of indicator
 ## Build
 **An example of environment on Della GPU cluster at Princeton University:**  
-
+    <table>  
+      <tr>
+        <td>Compiler</td>
+        <td>nvhpc/21.5</td>
+      </tr> 
+      <tr>
+        <td>CUDA</td>
+        <td>cudatoolkit/11.3</td>
+      </tr> 
+      <tr>
+        <td>MPI</td>
+        <td>openmpi/cuda-11.3/nvhpc-21.5/4.1.1</td>  
+      </tr>  
+    </table> 
 * Build in the src folder:  
   ```
   make
