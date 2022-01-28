@@ -43,7 +43,25 @@
 * **nind,** Number of subsurface indicator
 * **Indname,** pfb file of indicator
 ## Build
-* Please use the Makefile in the src folder to build
-* An example on della-gpu cluster at Princeton University
+**An example of environment on Della GPU cluster at Princeton University:**  
+1. Without hdf5:  
+    <table>  
+      <tr>
+        <td>Compiler</td>
+        <td>nvhpc/21.5</td>
+      </tr> 
+      <tr>
+        <td>CUDA</td>
+        <td>cudatoolkit/11.3</td>
+      </tr> 
+      <tr>
+        <td>MPI</td>
+        <td>openmpi/cuda-11.3/nvhpc-21.5/4.1.1</td>  
+      </tr>  
+    </table>  
+
+* Build in the src folder:  
+  ```
+  make
 
 
