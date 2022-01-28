@@ -1,13 +1,13 @@
 SLIM_hillslope_ER_shrub      ! SLIM run name, path to PF-CLM next, followed by DEM
-"../hillslope_clm_ER_shrub/hillslope_clm_ER_shrub"
-"../hillslope.dem.pfb"
+"/scratch/gpfs/cy15/paper_cases/hillslope_clm_ER_shrub/hillslope_clm_ER_shrub"
+"/scratch/gpfs/cy15/paper_cases/hillslope.dem.pfb"
 20              !nx
 5               !ny
 20              !nz
 10              !nCLMsoil
-1               !ppx
-1               !qqy
-0               !p_redis
+2               !ppx
+2               !qqy
+0            !p_redis
 0               !path 1752
 0               !cycle_f
 1               !particles per cell at start of simulation
@@ -28,7 +28,7 @@ SLIM_hillslope_ER_shrub      ! SLIM run name, path to PF-CLM next, followed by D
 1.0d0           !velocity multiplier 1.0=forward, -1.0=backward
 True            !CLM Evap Trans
 True            !CLM Evap Trans
-2               !number of particles per Evap Trans IC
+30               !number of particles per Evap Trans IC
 1000.0          !density H2O
 0.00000001      !Molecular Diffusivity
 0.250d0         !fraction of Dx/Vx for numerical stability

@@ -1110,7 +1110,7 @@ do kk = outkk, pfnt
 
     if(p_redis > 0 .and. mod(kk,p_redis) == 0) then
 
-        P = P_de
+        P(1:np_active,:) = P_de(1:np_active,:)
 
         call MPI_ALLGather(np_active,1,MPI_INTEGER,nump,1,MPI_INTEGER,MPI_COMM_WORLD,ierr)
         np_lo = sum(nump(1:rank)); np_ro = sum(nump(1:rank+1))
@@ -1178,7 +1178,7 @@ do kk = outkk, pfnt
             flush(30)
         endif
 
-        P_de = P
+        P_de(1:np_active,:) = P(1:np_active,:)
 
     endif
 
@@ -1186,16 +1186,16 @@ do kk = outkk, pfnt
     T2 = MPI_Wtime()
     redis_time = redis_time + (T2-T1)
 !------------------------------------------------------------------
-    if (mod(kk,(pft2-pft1+1)/5) == 0)  then
-        P = P_de
-        call MPI_FILE_OPEN(MPI_COMM_SELF,restartf,MPI_MODE_WRONLY+MPI_MODE_CREATE, &
-                        MPI_INFO_NULL,fh2,ierr)
-        call MPI_FILE_WRITE(fh2,np_active,1,MPI_INTEGER,MPI_STATUS_IGNORE,ierr)
-        call MPI_FILE_WRITE(fh2,pid,1,MPI_INTEGER,MPI_STATUS_IGNORE,ierr)
-        call MPI_FILE_WRITE(fh2,P(1:np_active,1:nind_c*2+17),np_active*(nind_c*2+17), &
-                            MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierr)
-        call MPI_FILE_CLOSE(fh2, ierr)
-    end if
+    !if (mod(kk,(pft2-pft1+1)/5) == 0)  then
+    !    P = P_de
+    !    call MPI_FILE_OPEN(MPI_COMM_SELF,restartf,MPI_MODE_WRONLY+MPI_MODE_CREATE, &
+    !                    MPI_INFO_NULL,fh2,ierr)
+    !    call MPI_FILE_WRITE(fh2,np_active,1,MPI_INTEGER,MPI_STATUS_IGNORE,ierr)
+    !    call MPI_FILE_WRITE(fh2,pid,1,MPI_INTEGER,MPI_STATUS_IGNORE,ierr)
+    !    call MPI_FILE_WRITE(fh2,P(1:np_active,1:nind_c*2+17),np_active*(nind_c*2+17), &
+    !                        MPI_DOUBLE_PRECISION,MPI_STATUS_IGNORE,ierr)
+    !    call MPI_FILE_CLOSE(fh2, ierr)
+    !end if
 
     end do !! timesteps and cycles
 
