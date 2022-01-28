@@ -33,7 +33,7 @@
 * **ibinpntswrite,** For output, not relevant in this paper
 * **etwrite,** For output, not relevant in this paper
 * **icwrite,** For output, not relevant in this paper
-* **V_mult,** Velocity multiplier. Not supported now and only used for transfer test.
+* **V_mult,** Velocity multiplier. 
 * **clmtrans,** clm evap trans?
 * **clmfile,** clm output file?
 * **iflux_p_res,** The number of particles added into the domain if PME > 0
