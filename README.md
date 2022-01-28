@@ -44,7 +44,7 @@
 * **Indname,** pfb file of indicator
 ## Build  
 **An example of environment on Della GPU cluster at Princeton University:**  
-Compiler, CUDA, and MPI:  
+1. Without hdf5:  
     <table>  
       <tr>
         <td>Compiler</td>
@@ -63,5 +63,6 @@ Compiler, CUDA, and MPI:
 * Build in the src folder:  
   ```
   make
+  ```
 
 
