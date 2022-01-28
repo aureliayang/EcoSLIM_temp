@@ -48,9 +48,9 @@
 * CUDA: cudatoolkit/11.3
 * MPI: penmpi/cuda-11.3/nvhpc-21.5/4.1.1
 
-* Build in the src folder:  
-  ```
-  make
-  ```
+Build in the src folder:  
+```
+make
+```
 
 
