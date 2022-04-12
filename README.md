@@ -1,5 +1,6 @@
 # EcoSLIM
 
+* **This part is for the manuscript submitted to *Computers & Geosciences*. For the manuscript submitted to *Geophysical Research Letters*, reviewers can skip this part and directly check the code.**
 * The parflow model for tests in the paper can be found at https://github.com/reedmaxwell/EcoSLIM/tree/master/Examples/Hillslope_Simulations/paper_cases  
 * The CPU version code (i.e., the origional OpenMP code) used in the paper can be found at https://github.com/reedmaxwell/EcoSLIM  Please refer to the introduction of input file on this website for rerun of CPU tests in the paper.  
 * Please refer to paper_results for all data generated in the paper https://doi.org/10.6084/m9.figshare.19090181.v3
